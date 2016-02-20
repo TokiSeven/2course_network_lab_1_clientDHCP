@@ -1,5 +1,5 @@
 #include "dhcp_client.h"
-
+#include <QHostAddress>
 dhcp_client::dhcp_client(QObject *parent) : QObject(parent)
 {
     this->s_nm = this->s_ip = "not given yet";
@@ -14,9 +14,10 @@ dhcp_client::dhcp_client(QObject *parent) : QObject(parent)
     for (int i = 0; i < in.allInterfaces().size(); i++)
     {
         QNetworkInterface t = in.allInterfaces()[i];
-        if (t.humanReadableName() == QString("Ethernet"))
+        if (t.flags().testFlag(QNetworkInterface::IsUp)
+                && t.flags().testFlag(QNetworkInterface::IsRunning)
+                && t.isValid())
         {
-            ithernet = t;
             for (int i = 0; i < t.addressEntries().size(); i++)
             {
                 QNetworkAddressEntry en = t.addressEntries()[i];
@@ -33,11 +34,15 @@ dhcp_client::dhcp_client(QObject *parent) : QObject(parent)
                 else
                     tr = false;
 
-                if (tr)
+                if (tr && en.ip().toString() != QString::fromStdString("127.0.0.1"))
                 {
+                    this->ithernet = t;
                     this->ip = en.ip();
                     this->netmask = en.netmask();
+                    //qDebug() << t.name();
                     qDebug() << t.hardwareAddress();
+                    qDebug() << en.ip().toString();
+                    qDebug() << en.netmask().toString();
                 }
             }
         }
